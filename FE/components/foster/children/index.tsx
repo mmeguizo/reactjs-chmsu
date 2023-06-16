@@ -1,0 +1,131 @@
+import {
+  Flex,
+  Icon,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Select,
+  Button,
+  useDisclosure,
+} from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import { MdSearch, MdPictureAsPdf } from 'react-icons/md';
+import CsvDownloader from 'react-csv-downloader';
+import { FaFileCsv } from 'react-icons/fa';
+import { childheaders, UserHeaders } from '@/services/helpers';
+import { pdfDownloader } from '@/services/pdfDownload';
+import ChildrenTable from '@/components/global/ChildrenTable';
+import { useRouter } from 'next/router';
+
+const Childrens = ({ orphans, userType }: any) => {
+  const [search, setValue] = useState<string>('');
+  const [selectSearch, setSelectSearch] = useState('firstname');
+  const [allOrphans, setAllOrphans] = useState(orphans);
+  const [userId, setUserId] = useState('');
+
+  const router = useRouter();
+  useEffect(() => {
+    if (router.query.id) setUserId(router.query.id as string);
+  }, [router]);
+  useEffect(() => {
+    setAllOrphans(orphans);
+  }, [orphans]);
+
+  const handleSearch = (e: any) => {
+    const { value } = e.target;
+    if (!value) {
+      setValue('');
+      setAllOrphans(orphans);
+    }
+    const filt = orphans.filter((orphan: any) => {
+      return orphan[selectSearch].toLowerCase().startsWith(value);
+    });
+    setValue(value);
+    setAllOrphans(filt);
+  };
+
+  const selectionChanged = (event: any) => {
+    setSelectSearch(event.target.value);
+  };
+
+  const download = () => {
+    const outputData = [...allOrphans];
+    const mappedData: any = [];
+    outputData.forEach(
+      ({
+        firstname,
+        lastname,
+        gender,
+        age,
+        present_whereabouts,
+        moral,
+      }: any) => {
+        const data = {
+          firstname,
+          lastname,
+          gender,
+          age,
+          present_whereabouts,
+          moral,
+        };
+        mappedData.push({ ...data });
+      },
+    );
+    const header = [
+      [
+        'Firstname',
+        'Lastname',
+        'Gender',
+        'Age',
+        'Present Whereabouts',
+        'Moral',
+      ],
+    ];
+    const body = mappedData.map(Object.values);
+    pdfDownloader(header, body);
+    window.location.reload();
+  };
+  return (
+    <>
+      <Flex justify="space-between" w="100%">
+        <Flex>
+          <Select variant="normal" w="130px" onChange={selectionChanged}>
+            <option value="firstname">Firstname</option>
+            <option value="lastname">Lastname</option>
+            <option value="status">Status</option>
+          </Select>
+          <InputGroup w="300px">
+            <InputLeftElement pointerEvents="none">
+              <Icon as={MdSearch} color="gray.300" />
+            </InputLeftElement>
+            <Input
+              type="tel"
+              placeholder="Search"
+              shadow="sm"
+              variant="search"
+              value={search}
+              onChange={handleSearch}
+            />
+          </InputGroup>
+        </Flex>
+
+        <CsvDownloader datas={allOrphans} filename="csv" columns={childheaders}>
+          <Button bg="transparent" leftIcon={<FaFileCsv />}>
+            Download Csv
+          </Button>
+        </CsvDownloader>
+        <Button
+          bg="transparent"
+          onClick={download}
+          //   disabled={!users.length}
+          leftIcon={<MdPictureAsPdf />}
+        >
+          Download Pdf
+        </Button>
+      </Flex>
+      <ChildrenTable orphans={allOrphans} search={search} />
+    </>
+  );
+};
+
+export default Childrens;
